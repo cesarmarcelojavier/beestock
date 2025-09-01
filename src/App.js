@@ -15,9 +15,14 @@ function App() {
     const guardado = JSON.parse(localStorage.getItem('usuarioActivo'));
     if (guardado) {
       setUsuarioActivo(guardado);
-      navigate('/inicio');
     }
   }, []);
+
+  useEffect(() => {
+    if (usuarioActivo) {
+      navigate('/inicio');
+    }
+  }, [usuarioActivo, navigate]);
 
   return (
     <>
