@@ -1,10 +1,11 @@
 // src/App.js
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Inicio from './pages/Inicio';
 import Agregar from './pages/Agregar';
 import Resumen from './pages/Resumen';
 import Configuracion from './pages/Configuracion';
+import Recordatorios from './pages/Recordatorios';
 import MenuLateral from './components/MenuLateral';
 import { CssBaseline, Container, ThemeProvider } from '@mui/material';
 import { createTheme } from '@mui/material/styles';
@@ -34,10 +35,8 @@ function App() {
           <Route path="/inicio" element={<Inicio />} />
           <Route path="/agregar" element={<Agregar />} />
           <Route path="/resumen" element={<Resumen />} />
-          <Route
-            path="/configuracion"
-            element={<Configuracion setModoOscuro={setModoOscuro} />}
-          />
+          <Route path="/configuracion" element={<Configuracion setModoOscuro={setModoOscuro} />} />
+          <Route path="/recordatorios" element={<Recordatorios />} />
           <Route path="*" element={<Inicio />} />
         </Routes>
       </Container>

@@ -6,14 +6,22 @@ import {
   Card,
   CardContent,
   Grid,
+  TextField,
+  Button,
   CircularProgress,
 } from '@mui/material';
 import { db } from '../firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import {
+  collection,
+  onSnapshot,
+  updateDoc,
+  doc,
+} from 'firebase/firestore';
 
 export default function Resumen() {
   const [stock, setStock] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [cantidadesEditadas, setCantidadesEditadas] = useState({});
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'medicamentos'), (snapshot) => {
@@ -27,6 +35,26 @@ export default function Resumen() {
 
     return () => unsub();
   }, []);
+
+  const manejarCambio = (id, nuevaCantidad) => {
+    setCantidadesEditadas((prev) => ({
+      ...prev,
+      [id]: nuevaCantidad,
+    }));
+  };
+
+  const guardarCantidad = async (id) => {
+    const cantidad = parseInt(cantidadesEditadas[id]);
+    if (isNaN(cantidad)) return;
+
+    try {
+      const ref = doc(db, 'medicamentos', id);
+      await updateDoc(ref, { cantidad });
+      console.log('Cantidad actualizada');
+    } catch (error) {
+      console.error('Error al actualizar:', error);
+    }
+  };
 
   return (
     <Box sx={{ marginTop: '2rem' }}>
@@ -45,9 +73,24 @@ export default function Resumen() {
               <Card>
                 <CardContent>
                   <Typography variant="h6">{med.nombre}</Typography>
-                  <Typography color="text.secondary">
-                    Cantidad: {med.cantidad}
-                  </Typography>
+
+                  <TextField
+                    label="Cantidad"
+                    type="number"
+                    value={cantidadesEditadas[med.id] ?? med.cantidad}
+                    onChange={(e) => manejarCambio(med.id, e.target.value)}
+                    fullWidth
+                    sx={{ mt: 1 }}
+                  />
+
+                  <Button
+                    variant="contained"
+                    color="success"
+                    sx={{ mt: 2 }}
+                    onClick={() => guardarCantidad(med.id)}
+                  >
+                    Guardar
+                  </Button>
                 </CardContent>
               </Card>
             </Grid>

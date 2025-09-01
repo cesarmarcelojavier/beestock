@@ -19,6 +19,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import SettingsIcon from '@mui/icons-material/Settings';
+import AccessAlarmIcon from '@mui/icons-material/AccessAlarm';
 import { useNavigate } from 'react-router-dom';
 
 export default function MenuLateral() {
@@ -29,6 +30,7 @@ export default function MenuLateral() {
     { texto: 'Inicio', ruta: '/inicio', icono: <HomeIcon /> },
     { texto: 'Agregar medicamento', ruta: '/agregar', icono: <AddCircleIcon /> },
     { texto: 'Stock disponible', ruta: '/resumen', icono: <InventoryIcon /> },
+    { texto: 'Recordatorios', ruta: '/recordatorios', icono: <AccessAlarmIcon /> },
     { texto: 'Configuración', ruta: '/configuracion', icono: <SettingsIcon /> },
   ];
 
@@ -69,21 +71,8 @@ export default function MenuLateral() {
           },
         }}
       >
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '1rem',
-              backgroundColor: '#c5e1a5',
-            }}
-          >
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', padding: '1rem', backgroundColor: '#c5e1a5' }}>
             <LocalPharmacyIcon sx={{ marginRight: '0.5rem' }} />
             <Typography variant="h6">BeeStock</Typography>
           </Box>

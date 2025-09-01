@@ -1,105 +1,159 @@
 // src/pages/Recordatorios.js
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Container,
   Typography,
+  Box,
   TextField,
   Button,
+  FormControlLabel,
+  Switch,
+  Divider,
   MenuItem,
-  Alert,
-  List,
-  ListItem,
-  ListItemText,
-  Paper,
+  Select,
+  InputLabel,
+  FormControl,
+  Grid,
+  Card,
+  CardContent,
 } from '@mui/material';
+import { db } from '../firebase';
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+  Timestamp,
+} from 'firebase/firestore';
 
 export default function Recordatorios() {
+  const [tipo, setTipo] = useState('toma');
   const [medicamento, setMedicamento] = useState('');
-  const [hora, setHora] = useState('');
-  const [frecuencia, setFrecuencia] = useState('Diario');
+  const [horario, setHorario] = useState('');
+  const [dias, setDias] = useState('');
+  const [umbral, setUmbral] = useState('');
+  const [activo, setActivo] = useState(true);
   const [recordatorios, setRecordatorios] = useState([]);
-  const [confirmacion, setConfirmacion] = useState('');
 
-  const frecuencias = ['Diario', 'Cada 8 horas', 'Cada 12 horas', 'Cada 24 horas'];
+  const guardarRecordatorio = async () => {
+    const nuevo = {
+      tipo,
+      medicamento,
+      activo,
+      creado: Timestamp.now(),
+    };
 
-  const manejarAgregar = () => {
-    if (!medicamento || !hora) return;
+    if (tipo === 'toma') {
+      nuevo.horario = horario;
+      nuevo.dias = dias;
+    } else {
+      nuevo.umbral = parseInt(umbral);
+    }
 
-    const nuevo = { medicamento, hora, frecuencia };
-    setRecordatorios((prev) => [...prev, nuevo]);
-    setConfirmacion(`Recordatorio creado para ${medicamento} a las ${hora}`);
+    await addDoc(collection(db, 'recordatorios'), nuevo);
     setMedicamento('');
-    setHora('');
-    setFrecuencia('Diario');
+    setHorario('');
+    setDias('');
+    setUmbral('');
   };
 
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'recordatorios'), (snap) => {
+      const datos = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setRecordatorios(datos);
+    });
+    return () => unsub();
+  }, []);
+
   return (
-    <Container maxWidth="sm" sx={{ marginTop: '2rem' }}>
-      <Typography variant="h4" gutterBottom>
-        Recordatorios
+    <Box sx={{ marginTop: '2rem' }}>
+      <Typography variant="h5" gutterBottom>
+        Recordatorios ⏰
       </Typography>
+
+      <Divider sx={{ mb: 2 }} />
+
+      <FormControl fullWidth sx={{ mb: 2 }}>
+        <InputLabel>Tipo</InputLabel>
+        <Select value={tipo} onChange={(e) => setTipo(e.target.value)}>
+          <MenuItem value="toma">Tomar medicamento</MenuItem>
+          <MenuItem value="compra">Comprar medicamento</MenuItem>
+        </Select>
+      </FormControl>
 
       <TextField
         label="Medicamento"
+        fullWidth
         value={medicamento}
         onChange={(e) => setMedicamento(e.target.value)}
-        fullWidth
-        sx={{ marginBottom: '1rem' }}
+        sx={{ mb: 2 }}
       />
 
-      <TextField
-        label="Hora"
-        type="time"
-        value={hora}
-        onChange={(e) => setHora(e.target.value)}
-        fullWidth
-        sx={{ marginBottom: '1rem' }}
-        InputLabelProps={{ shrink: true }}
-        inputProps={{ step: 300 }}
+      {tipo === 'toma' && (
+        <>
+          <TextField
+            label="Horario (HH:mm)"
+            fullWidth
+            value={horario}
+            onChange={(e) => setHorario(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Días (ej: Lunes,Miércoles)"
+            fullWidth
+            value={dias}
+            onChange={(e) => setDias(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+        </>
+      )}
+
+      {tipo === 'compra' && (
+        <TextField
+          label="Umbral mínimo"
+          type="number"
+          fullWidth
+          value={umbral}
+          onChange={(e) => setUmbral(e.target.value)}
+          sx={{ mb: 2 }}
+        />
+      )}
+
+      <FormControlLabel
+        control={
+          <Switch checked={activo} onChange={() => setActivo(!activo)} />
+        }
+        label="Activo"
       />
 
-      <TextField
-        select
-        label="Frecuencia"
-        value={frecuencia}
-        onChange={(e) => setFrecuencia(e.target.value)}
-        fullWidth
-        sx={{ marginBottom: '1rem' }}
-      >
-        {frecuencias.map((f) => (
-          <MenuItem key={f} value={f}>
-            {f}
-          </MenuItem>
-        ))}
-      </TextField>
-
-      <Button variant="contained" color="primary" onClick={manejarAgregar}>
-        Agregar recordatorio
+      <Button variant="contained" color="primary" sx={{ mt: 2 }} onClick={guardarRecordatorio}>
+        Guardar recordatorio
       </Button>
 
-      {confirmacion && (
-        <Alert severity="success" sx={{ marginTop: '1rem' }}>
-          {confirmacion}
-        </Alert>
-      )}
+      <Divider sx={{ my: 3 }} />
 
-      {recordatorios.length > 0 && (
-        <Paper sx={{ marginTop: '2rem' }}>
-          <Typography variant="h6" sx={{ padding: '1rem' }}>
-            Recordatorios activos
-          </Typography>
-          <List>
-            {recordatorios.map((r, index) => (
-              <ListItem key={index}>
-                <ListItemText
-                  primary={`${r.medicamento} - ${r.hora}`}
-                  secondary={`Frecuencia: ${r.frecuencia}`}
-                />
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
-      )}
-    </Container>
+      <Typography variant="h6" gutterBottom>
+        Recordatorios activos
+      </Typography>
+
+      <Grid container spacing={2}>
+        {recordatorios.map((rec) => (
+          <Grid item xs={12} sm={6} md={4} key={rec.id}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle1">{rec.tipo === 'toma' ? 'Tomar' : 'Comprar'} {rec.medicamento}</Typography>
+                {rec.tipo === 'toma' && (
+                  <>
+                    <Typography>Horario: {rec.horario}</Typography>
+                    <Typography>Días: {rec.dias}</Typography>
+                  </>
+                )}
+                {rec.tipo === 'compra' && (
+                  <Typography>Umbral: {rec.umbral}</Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
   );
 }
