@@ -8,10 +8,21 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  Checkbox,
+  FormControlLabel,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import {
+  collection,
+  onSnapshot,
+  deleteDoc,
+  doc,
+  updateDoc,
+  getDocs,
+  addDoc,
+  Timestamp,
+} from 'firebase/firestore';
 
 export default function Inicio() {
   const [stockTotal, setStockTotal] = useState(0);
@@ -19,6 +30,7 @@ export default function Inicio() {
   const [cargandoStock, setCargandoStock] = useState(true);
   const [cargandoRecordatorios, setCargandoRecordatorios] = useState(true);
   const navigate = useNavigate();
+  const fechaHoy = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
   useEffect(() => {
     const unsubStock = onSnapshot(collection(db, 'medicamentos'), (snapshot) => {
@@ -46,6 +58,54 @@ export default function Inicio() {
       await deleteDoc(doc(db, 'recordatorios', id));
     } catch (error) {
       console.error('Error al eliminar recordatorio:', error);
+    }
+  };
+
+  const confirmarToma = async (rec) => {
+    const yaTomado = rec.historial?.[fechaHoy] === true;
+    if (yaTomado) return;
+
+    try {
+      // 1. Confirmar toma
+      await updateDoc(doc(db, 'recordatorios', rec.id), {
+        [`historial.${fechaHoy}`]: true,
+      });
+
+      // 2. Buscar medicamento por nombre
+      const medsSnap = await getDocs(collection(db, 'medicamentos'));
+      const medDoc = medsSnap.docs.find((doc) => doc.data().nombre === rec.medicamento);
+      if (!medDoc) return;
+
+      const medId = medDoc.id;
+      const medData = medDoc.data();
+      const nuevaCantidad = (medData.cantidad || 0) - 1;
+
+      // 3. Actualizar stock
+      await updateDoc(doc(db, 'medicamentos', medId), {
+        cantidad: nuevaCantidad,
+      });
+
+      // 4. Verificar umbral y generar recordatorio de compra si no existe
+      if (medData.umbral && nuevaCantidad <= medData.umbral) {
+        const compraSnap = await getDocs(collection(db, 'recordatorios'));
+        const yaExiste = compraSnap.docs.some(
+          (doc) =>
+            doc.data().tipo === 'compra' &&
+            doc.data().medicamento === rec.medicamento
+        );
+
+        if (!yaExiste) {
+          await addDoc(collection(db, 'recordatorios'), {
+            tipo: 'compra',
+            medicamento: rec.medicamento,
+            umbral: medData.umbral,
+            activo: true,
+            creado: Timestamp.now(),
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error al confirmar toma y descontar stock:', error);
     }
   };
 
@@ -111,40 +171,60 @@ export default function Inicio() {
           </Typography>
 
           <Grid container spacing={2}>
-            {recordatorios.map((rec) => (
-              <Grid item xs={12} sm={6} md={4} key={rec.id}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="subtitle1">
-                      {rec.tipo === 'toma'
-                        ? `Tomar ${rec.medicamento}`
-                        : `Comprar ${rec.medicamento}`}
-                    </Typography>
+            {recordatorios.map((rec) => {
+              const yaTomado = rec.historial?.[fechaHoy] === true;
 
-                    {rec.tipo === 'toma' && (
-                      <>
-                        <Typography>Horario: {rec.horario}</Typography>
-                        <Typography>Días: {rec.dias}</Typography>
-                      </>
-                    )}
+              return (
+                <Grid item xs={12} sm={6} md={4} key={rec.id}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="subtitle1">
+                        {rec.tipo === 'toma'
+                          ? `Tomar ${rec.medicamento}`
+                          : `Comprar ${rec.medicamento}`}
+                      </Typography>
 
-                    {rec.tipo === 'compra' && (
-                      <Typography>Umbral: {rec.umbral}</Typography>
-                    )}
+                      {rec.tipo === 'toma' && (
+                        <>
+                          <Typography>Horario: {rec.horario}</Typography>
+                          <Typography>Días: {rec.dias}</Typography>
 
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      size="small"
-                      sx={{ mt: 2 }}
-                      onClick={() => eliminarRecordatorio(rec.id)}
-                    >
-                      Eliminar
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={yaTomado}
+                                disabled={yaTomado}
+                                onChange={() => confirmarToma(rec)}
+                              />
+                            }
+                            label={
+                              yaTomado
+                                ? 'Ya fue tomado hoy'
+                                : 'Confirmar que fue tomado'
+                            }
+                            sx={{ mt: 1 }}
+                          />
+                        </>
+                      )}
+
+                      {rec.tipo === 'compra' && (
+                        <Typography>Umbral: {rec.umbral}</Typography>
+                      )}
+
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        sx={{ mt: 2 }}
+                        onClick={() => eliminarRecordatorio(rec.id)}
+                      >
+                        Eliminar
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
         </Box>
       ) : (

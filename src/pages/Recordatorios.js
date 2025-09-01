@@ -21,6 +21,9 @@ import {
   collection,
   addDoc,
   onSnapshot,
+  deleteDoc,
+  doc,
+  getDocs,
   Timestamp,
 } from 'firebase/firestore';
 
@@ -32,8 +35,31 @@ export default function Recordatorios() {
   const [umbral, setUmbral] = useState('');
   const [activo, setActivo] = useState(true);
   const [recordatorios, setRecordatorios] = useState([]);
+  const [listaMedicamentos, setListaMedicamentos] = useState([]);
+
+  // Cargar medicamentos desde Firestore
+  useEffect(() => {
+    const cargarMedicamentos = async () => {
+      const snap = await getDocs(collection(db, 'medicamentos'));
+      const nombres = snap.docs.map((doc) => doc.data().nombre);
+      setListaMedicamentos(nombres);
+    };
+
+    cargarMedicamentos();
+  }, []);
+
+  // Escuchar recordatorios activos
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'recordatorios'), (snap) => {
+      const datos = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setRecordatorios(datos.filter((r) => r.activo));
+    });
+    return () => unsub();
+  }, []);
 
   const guardarRecordatorio = async () => {
+    if (!medicamento) return;
+
     const nuevo = {
       tipo,
       medicamento,
@@ -44,6 +70,7 @@ export default function Recordatorios() {
     if (tipo === 'toma') {
       nuevo.horario = horario;
       nuevo.dias = dias;
+      nuevo.historial = {}; // para seguimiento diario
     } else {
       nuevo.umbral = parseInt(umbral);
     }
@@ -55,13 +82,13 @@ export default function Recordatorios() {
     setUmbral('');
   };
 
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'recordatorios'), (snap) => {
-      const datos = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setRecordatorios(datos);
-    });
-    return () => unsub();
-  }, []);
+  const eliminarRecordatorio = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'recordatorios', id));
+    } catch (error) {
+      console.error('Error al eliminar recordatorio:', error);
+    }
+  };
 
   return (
     <Box sx={{ marginTop: '2rem' }}>
@@ -79,13 +106,29 @@ export default function Recordatorios() {
         </Select>
       </FormControl>
 
-      <TextField
-        label="Medicamento"
-        fullWidth
-        value={medicamento}
-        onChange={(e) => setMedicamento(e.target.value)}
-        sx={{ mb: 2 }}
-      />
+      {tipo === 'toma' ? (
+        <FormControl fullWidth sx={{ mb: 2 }}>
+          <InputLabel>Medicamento</InputLabel>
+          <Select
+            value={medicamento}
+            onChange={(e) => setMedicamento(e.target.value)}
+          >
+            {listaMedicamentos.map((nombre) => (
+              <MenuItem key={nombre} value={nombre}>
+                {nombre}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      ) : (
+        <TextField
+          label="Medicamento"
+          fullWidth
+          value={medicamento}
+          onChange={(e) => setMedicamento(e.target.value)}
+          sx={{ mb: 2 }}
+        />
+      )}
 
       {tipo === 'toma' && (
         <>
@@ -124,7 +167,12 @@ export default function Recordatorios() {
         label="Activo"
       />
 
-      <Button variant="contained" color="primary" sx={{ mt: 2 }} onClick={guardarRecordatorio}>
+      <Button
+        variant="contained"
+        color="primary"
+        sx={{ mt: 2 }}
+        onClick={guardarRecordatorio}
+      >
         Guardar recordatorio
       </Button>
 
@@ -139,16 +187,32 @@ export default function Recordatorios() {
           <Grid item xs={12} sm={6} md={4} key={rec.id}>
             <Card>
               <CardContent>
-                <Typography variant="subtitle1">{rec.tipo === 'toma' ? 'Tomar' : 'Comprar'} {rec.medicamento}</Typography>
+                <Typography variant="subtitle1">
+                  {rec.tipo === 'toma'
+                    ? `Tomar ${rec.medicamento}`
+                    : `Comprar ${rec.medicamento}`}
+                </Typography>
+
                 {rec.tipo === 'toma' && (
                   <>
                     <Typography>Horario: {rec.horario}</Typography>
                     <Typography>Días: {rec.dias}</Typography>
                   </>
                 )}
+
                 {rec.tipo === 'compra' && (
                   <Typography>Umbral: {rec.umbral}</Typography>
                 )}
+
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  sx={{ mt: 2 }}
+                  onClick={() => eliminarRecordatorio(rec.id)}
+                >
+                  Eliminar
+                </Button>
               </CardContent>
             </Card>
           </Grid>
