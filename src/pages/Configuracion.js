@@ -7,13 +7,29 @@ import {
   Switch,
   Box,
   Divider,
+  Button,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
-export default function Configuracion() {
-  const [modoOscuro, setModoOscuro] = useState(false);
+export default function Configuracion({ setModoOscuro }) {
+  const [modoOscuroLocal, setModoOscuroLocal] = useState(false);
   const [alertasStock, setAlertasStock] = useState(true);
   const [mostrarUsuario, setMostrarUsuario] = useState(true);
   const [animaciones, setAnimaciones] = useState(true);
+
+  const navigate = useNavigate();
+
+  const guardarCambios = () => {
+    setModoOscuro(modoOscuroLocal);
+    // Podés guardar en localStorage si querés persistencia
+    console.log('Preferencias guardadas:', {
+      modoOscuroLocal,
+      alertasStock,
+      mostrarUsuario,
+      animaciones,
+    });
+    navigate('/inicio');
+  };
 
   return (
     <Box sx={{ marginTop: '2rem' }}>
@@ -27,13 +43,12 @@ export default function Configuracion() {
         <FormControlLabel
           control={
             <Switch
-              checked={modoOscuro}
-              onChange={() => setModoOscuro(!modoOscuro)}
+              checked={modoOscuroLocal}
+              onChange={() => setModoOscuroLocal(!modoOscuroLocal)}
             />
           }
           label="Modo oscuro"
         />
-
         <FormControlLabel
           control={
             <Switch
@@ -43,7 +58,6 @@ export default function Configuracion() {
           }
           label="Alertas de stock bajo"
         />
-
         <FormControlLabel
           control={
             <Switch
@@ -53,7 +67,6 @@ export default function Configuracion() {
           }
           label="Mostrar nombre del usuario"
         />
-
         <FormControlLabel
           control={
             <Switch
@@ -64,6 +77,15 @@ export default function Configuracion() {
           label="Animaciones activadas"
         />
       </FormGroup>
+
+      <Button
+        variant="contained"
+        color="success"
+        sx={{ marginTop: '2rem' }}
+        onClick={guardarCambios}
+      >
+        Guardar y volver al inicio
+      </Button>
     </Box>
   );
 }

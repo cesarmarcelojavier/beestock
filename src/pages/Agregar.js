@@ -1,93 +1,81 @@
 // src/pages/Agregar.js
 import { useState } from 'react';
 import {
-  Container,
-  Typography,
   TextField,
   Button,
+  Typography,
+  Box,
   Alert,
 } from '@mui/material';
+import { db } from '../firebase';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
 
 export default function Agregar() {
   const [nombre, setNombre] = useState('');
-  const [cantidadStock, setCantidadStock] = useState('');
-  const [cantidadAdquirida, setCantidadAdquirida] = useState('');
-  const [fechaCompra, setFechaCompra] = useState('');
-  const [confirmacion, setConfirmacion] = useState('');
+  const [cantidad, setCantidad] = useState('');
+  const [guardado, setGuardado] = useState(false);
+  const [error, setError] = useState('');
 
-  const manejarAgregar = () => {
-    if (!nombre || !cantidadStock || !cantidadAdquirida || !fechaCompra) return;
+  const guardarMedicamento = async () => {
+    if (!nombre || !cantidad) {
+      setError('Completa todos los campos');
+      return;
+    }
 
-    const nuevo = {
-      nombre: nombre.trim(),
-      cantidad: parseInt(cantidadStock),
-      adquirida: parseInt(cantidadAdquirida),
-      fechaCompra,
-      fechaRegistro: new Date().toISOString(),
-    };
-
-    const existentes = JSON.parse(localStorage.getItem('medicamentos')) || [];
-    const actualizados = [...existentes, nuevo];
-    localStorage.setItem('medicamentos', JSON.stringify(actualizados));
-
-    setConfirmacion(`Medicamento "${nombre}" agregado`);
-    setNombre('');
-    setCantidadStock('');
-    setCantidadAdquirida('');
-    setFechaCompra('');
+    try {
+      await addDoc(collection(db, 'medicamentos'), {
+        nombre,
+        cantidad: parseInt(cantidad),
+        creado: Timestamp.now(),
+      });
+      setGuardado(true);
+      setNombre('');
+      setCantidad('');
+      setError('');
+    } catch (err) {
+      console.error('Error al guardar:', err);
+      setError('No se pudo guardar');
+    }
   };
 
   return (
-    <Container maxWidth="sm" sx={{ marginTop: '2rem' }}>
-      <Typography variant="h4" gutterBottom>
-        Agregar Medicamento
+    <Box sx={{ marginTop: '2rem' }}>
+      <Typography variant="h5" gutterBottom>
+        Agregar medicamento ➕
       </Typography>
+
+      {guardado && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          Medicamento guardado correctamente
+        </Alert>
+      )}
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
       <TextField
         label="Nombre"
+        fullWidth
         value={nombre}
         onChange={(e) => setNombre(e.target.value)}
-        fullWidth
-        sx={{ marginBottom: '1rem' }}
+        sx={{ mb: 2 }}
       />
 
       <TextField
-        label="Cantidad en stock"
+        label="Cantidad"
         type="number"
-        value={cantidadStock}
-        onChange={(e) => setCantidadStock(e.target.value)}
         fullWidth
-        sx={{ marginBottom: '1rem' }}
+        value={cantidad}
+        onChange={(e) => setCantidad(e.target.value)}
+        sx={{ mb: 2 }}
       />
 
-      <TextField
-        label="Cantidad adquirida"
-        type="number"
-        value={cantidadAdquirida}
-        onChange={(e) => setCantidadAdquirida(e.target.value)}
-        fullWidth
-        sx={{ marginBottom: '1rem' }}
-      />
-
-      <TextField
-        label="Fecha de compra"
-        type="date"
-        value={fechaCompra}
-        onChange={(e) => setFechaCompra(e.target.value)}
-        fullWidth
-        sx={{ marginBottom: '1rem' }}
-        InputLabelProps={{ shrink: true }}
-      />
-
-      <Button variant="contained" color="primary" onClick={manejarAgregar}>
+      <Button variant="contained" color="primary" onClick={guardarMedicamento}>
         Guardar
       </Button>
-
-      {confirmacion && (
-        <Alert severity="success" sx={{ marginTop: '1rem' }}>
-          {confirmacion}
-        </Alert>
-      )}
-    </Container>
+    </Box>
   );
 }
