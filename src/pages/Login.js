@@ -9,11 +9,15 @@ import {
   TextField,
   Button,
   Alert,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [contraseña, setContraseña] = useState('');
+  const [mostrarContraseña, setMostrarContraseña] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -59,11 +63,20 @@ export default function Login() {
 
       <TextField
         label="Contraseña"
-        type="password"
+        type={mostrarContraseña ? 'text' : 'password'}
         value={contraseña}
         onChange={(e) => setContraseña(e.target.value)}
         fullWidth
         sx={{ marginBottom: '1rem' }}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton onClick={() => setMostrarContraseña((prev) => !prev)}>
+                {mostrarContraseña ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
 
       <Button variant="contained" onClick={manejarLogin}>
