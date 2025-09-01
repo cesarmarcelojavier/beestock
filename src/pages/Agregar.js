@@ -1,67 +1,93 @@
+// src/pages/Agregar.js
 import { useState } from 'react';
 import {
   Container,
+  Typography,
   TextField,
   Button,
-  Typography,
-  Box,
   Alert,
 } from '@mui/material';
 
 export default function Agregar() {
   const [nombre, setNombre] = useState('');
-  const [dosis, setDosis] = useState('');
-  const [frecuencia, setFrecuencia] = useState('');
-  const [error, setError] = useState('');
+  const [cantidadStock, setCantidadStock] = useState('');
+  const [cantidadAdquirida, setCantidadAdquirida] = useState('');
+  const [fechaCompra, setFechaCompra] = useState('');
+  const [confirmacion, setConfirmacion] = useState('');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const manejarAgregar = () => {
+    if (!nombre || !cantidadStock || !cantidadAdquirida || !fechaCompra) return;
 
-    if (!nombre || !dosis || !frecuencia) {
-      setError('Todos los campos son obligatorios.');
-      return;
-    }
+    const nuevo = {
+      nombre: nombre.trim(),
+      cantidad: parseInt(cantidadStock),
+      adquirida: parseInt(cantidadAdquirida),
+      fechaCompra,
+      fechaRegistro: new Date().toISOString(),
+    };
 
-    console.log('Medicamento agregado:', { nombre, dosis, frecuencia });
+    const existentes = JSON.parse(localStorage.getItem('medicamentos')) || [];
+    const actualizados = [...existentes, nuevo];
+    localStorage.setItem('medicamentos', JSON.stringify(actualizados));
 
+    setConfirmacion(`Medicamento "${nombre}" agregado`);
     setNombre('');
-    setDosis('');
-    setFrecuencia('');
-    setError('');
+    setCantidadStock('');
+    setCantidadAdquirida('');
+    setFechaCompra('');
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="sm" sx={{ marginTop: '2rem' }}>
       <Typography variant="h4" gutterBottom>
-        Agregar medicamento
+        Agregar Medicamento
       </Typography>
 
-      <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <TextField
-          label="Nombre"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          fullWidth
-        />
-        <TextField
-          label="Dosis"
-          value={dosis}
-          onChange={(e) => setDosis(e.target.value)}
-          fullWidth
-        />
-        <TextField
-          label="Frecuencia"
-          value={frecuencia}
-          onChange={(e) => setFrecuencia(e.target.value)}
-          fullWidth
-        />
+      <TextField
+        label="Nombre"
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+        fullWidth
+        sx={{ marginBottom: '1rem' }}
+      />
 
-        {error && <Alert severity="error">{error}</Alert>}
+      <TextField
+        label="Cantidad en stock"
+        type="number"
+        value={cantidadStock}
+        onChange={(e) => setCantidadStock(e.target.value)}
+        fullWidth
+        sx={{ marginBottom: '1rem' }}
+      />
 
-        <Button type="submit" variant="contained" color="primary">
-          Guardar
-        </Button>
-      </Box>
+      <TextField
+        label="Cantidad adquirida"
+        type="number"
+        value={cantidadAdquirida}
+        onChange={(e) => setCantidadAdquirida(e.target.value)}
+        fullWidth
+        sx={{ marginBottom: '1rem' }}
+      />
+
+      <TextField
+        label="Fecha de compra"
+        type="date"
+        value={fechaCompra}
+        onChange={(e) => setFechaCompra(e.target.value)}
+        fullWidth
+        sx={{ marginBottom: '1rem' }}
+        InputLabelProps={{ shrink: true }}
+      />
+
+      <Button variant="contained" color="primary" onClick={manejarAgregar}>
+        Guardar
+      </Button>
+
+      {confirmacion && (
+        <Alert severity="success" sx={{ marginTop: '1rem' }}>
+          {confirmacion}
+        </Alert>
+      )}
     </Container>
   );
 }

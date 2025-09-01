@@ -19,7 +19,6 @@ import HomeIcon from '@mui/icons-material/Home';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import PeopleIcon from '@mui/icons-material/People';
 import SettingsIcon from '@mui/icons-material/Settings';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -32,7 +31,7 @@ import Resumen from './pages/Resumen';
 import Recordatorios from './pages/Recordatorios';
 import Login from './pages/Login';
 
-function NavigationDrawer({ onLogout }) {
+function NavigationDrawer({ onLogout, usuarioActivo }) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -41,7 +40,6 @@ function NavigationDrawer({ onLogout }) {
     { text: 'Agregar Medicamento', icon: <AddCircleIcon />, path: '/agregar' },
     { text: 'Resumen de Stock', icon: <InventoryIcon />, path: '/resumen' },
     { text: 'Recordatorios', icon: <NotificationsIcon />, path: '/recordatorios' },
-    { text: 'Usuarios', icon: <PeopleIcon />, path: '/usuarios' },
     { text: 'Configuración', icon: <SettingsIcon />, path: '/configuracion' },
     { text: 'Exportar Datos', icon: <FileDownloadIcon />, path: '/exportar' },
   ];
@@ -53,7 +51,12 @@ function NavigationDrawer({ onLogout }) {
           <IconButton edge="start" color="inherit" onClick={() => setOpen(true)}>
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>BeeStock 🐝</Typography>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            BeeStock 🐝
+          </Typography>
+          <Typography variant="body1" sx={{ marginRight: '1rem' }}>
+            {usuarioActivo?.nombre}
+          </Typography>
           <Button color="inherit" startIcon={<LogoutIcon />} onClick={onLogout}>
             Cerrar sesión
           </Button>
@@ -98,7 +101,7 @@ function AppContent() {
 
   return (
     <>
-      {usuarioActivo && <NavigationDrawer onLogout={cerrarSesion} />}
+      {usuarioActivo && <NavigationDrawer onLogout={cerrarSesion} usuarioActivo={usuarioActivo} />}
       <Container maxWidth="md" sx={{ padding: '2rem' }}>
         <Routes>
           <Route path="/" element={<Splash />} />
@@ -109,7 +112,6 @@ function AppContent() {
               <Route path="/agregar" element={<Agregar />} />
               <Route path="/resumen" element={<Resumen />} />
               <Route path="/recordatorios" element={<Recordatorios />} />
-              <Route path="/usuarios" element={<div>Gestión de usuarios (próximamente)</div>} />
               <Route path="/configuracion" element={<div>Configuración (próximamente)</div>} />
               <Route path="/exportar" element={<div>Exportar Datos (próximamente)</div>} />
             </>

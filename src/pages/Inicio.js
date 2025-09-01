@@ -1,90 +1,190 @@
 // src/pages/Inicio.js
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Container,
   Typography,
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
+  List,
+  ListItem,
+  ListItemText,
+  Paper,
+  Box,
+  TextField,
   Button,
   Checkbox,
   FormControlLabel,
 } from '@mui/material';
 
-const fechaHoy = new Date().toLocaleDateString('es-AR');
-
 export default function Inicio() {
-  const [medicamentos, setMedicamentos] = useState([
-    {
-      id: 1,
-      nombre: 'Paracetamol',
-      dosis: '500mg',
-      frecuencia: 'Cada 8 horas',
-      cantidad: 20,
-      ultimaToma: '',
-    },
-    {
-      id: 2,
-      nombre: 'Ibuprofeno',
-      dosis: '400mg',
-      frecuencia: 'Cada 12 horas',
-      cantidad: 15,
-      ultimaToma: '',
-    },
-  ]);
+  const [medicamentos, setMedicamentos] = useState([]);
+  const [editandoIndex, setEditandoIndex] = useState(null);
+  const [formulario, setFormulario] = useState({});
+  const UMBRAL_STOCK_BAJO = 10;
 
-  const manejarToma = (id) => {
-    setMedicamentos((prev) =>
-      prev.map((med) => {
-        if (med.id === id) {
-          if (med.ultimaToma === fechaHoy) return med; // Ya se tomó hoy
+  useEffect(() => {
+    const guardados = JSON.parse(localStorage.getItem('medicamentos')) || [];
+    setMedicamentos(guardados);
+  }, []);
 
-          return {
-            ...med,
-            cantidad: med.cantidad > 0 ? med.cantidad - 1 : 0,
-            ultimaToma: fechaHoy,
-          };
-        }
-        return med;
-      })
-    );
+  const iniciarEdicion = (index) => {
+    setEditandoIndex(index);
+    setFormulario({ ...medicamentos[index] });
+  };
+
+  const cancelarEdicion = () => {
+    setEditandoIndex(null);
+    setFormulario({});
+  };
+
+  const guardarCambios = () => {
+    const actualizados = [...medicamentos];
+    actualizados[editandoIndex] = formulario;
+    localStorage.setItem('medicamentos', JSON.stringify(actualizados));
+    setMedicamentos(actualizados);
+    cancelarEdicion();
+  };
+
+  const manejarCambio = (campo, valor) => {
+    setFormulario((prev) => ({ ...prev, [campo]: valor }));
+  };
+
+  const manejarCambioRecordatorio = (campo, valor) => {
+    setFormulario((prev) => ({
+      ...prev,
+      recordatorio: {
+        ...prev.recordatorio,
+        [campo]: valor,
+      },
+    }));
+  };
+
+  const manejarEncargado = (index, valor) => {
+    const actualizados = [...medicamentos];
+    actualizados[index].encargado = valor;
+    localStorage.setItem('medicamentos', JSON.stringify(actualizados));
+    setMedicamentos(actualizados);
   };
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="sm" sx={{ marginTop: '2rem' }}>
       <Typography variant="h4" gutterBottom>
-        Lista de medicamentos
+        Medicamentos en Stock
       </Typography>
 
-      <Grid container spacing={2}>
-        {medicamentos.map((med) => (
-          <Grid item xs={12} sm={6} md={4} key={med.id}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6">{med.nombre}</Typography>
-                <Typography>Dosis: {med.dosis}</Typography>
-                <Typography>Frecuencia: {med.frecuencia}</Typography>
-                <Typography>Stock: {med.cantidad} pastillas</Typography>
-                <Typography>Fecha: {fechaHoy}</Typography>
-              </CardContent>
-              <CardActions>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={med.ultimaToma === fechaHoy}
-                      onChange={() => manejarToma(med.id)}
+      {medicamentos.length === 0 ? (
+        <Typography>No hay medicamentos registrados.</Typography>
+      ) : (
+        <Paper>
+          <List>
+            {medicamentos.map((m, index) => (
+              <ListItem
+                key={index}
+                sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
+              >
+                {editandoIndex === index ? (
+                  <>
+                    <TextField
+                      label="Nombre"
+                      value={formulario.nombre}
+                      onChange={(e) => manejarCambio('nombre', e.target.value)}
+                      fullWidth
+                      sx={{ marginBottom: '0.5rem' }}
                     />
-                  }
-                  label="Tomado hoy"
-                />
-                <Button size="small" color="primary">Editar</Button>
-                <Button size="small" color="error">Eliminar</Button>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+                    <TextField
+                      label="Cantidad en stock"
+                      type="number"
+                      value={formulario.cantidad}
+                      onChange={(e) => manejarCambio('cantidad', e.target.value)}
+                      fullWidth
+                      sx={{ marginBottom: '0.5rem' }}
+                    />
+                    <TextField
+                      label="Cantidad a comprar"
+                      type="number"
+                      value={formulario.cantidadAComprar}
+                      onChange={(e) => manejarCambio('cantidadAComprar', e.target.value)}
+                      fullWidth
+                      sx={{ marginBottom: '0.5rem' }}
+                    />
+                    <TextField
+                      label="Fecha de compra"
+                      type="date"
+                      value={formulario.fechaCompra}
+                      onChange={(e) => manejarCambio('fechaCompra', e.target.value)}
+                      fullWidth
+                      sx={{ marginBottom: '0.5rem' }}
+                      InputLabelProps={{ shrink: true }}
+                    />
+
+                    <TextField
+                      label="Hora de recordatorio"
+                      type="time"
+                      value={formulario.recordatorio?.hora || ''}
+                      onChange={(e) => manejarCambioRecordatorio('hora', e.target.value)}
+                      fullWidth
+                      sx={{ marginBottom: '0.5rem' }}
+                      InputLabelProps={{ shrink: true }}
+                    />
+
+                    <TextField
+                      label="Frecuencia"
+                      value={formulario.recordatorio?.frecuencia || ''}
+                      onChange={(e) => manejarCambioRecordatorio('frecuencia', e.target.value)}
+                      fullWidth
+                      sx={{ marginBottom: '0.5rem' }}
+                    />
+
+                    <Box sx={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                      <Button variant="contained" onClick={guardarCambios}>
+                        Guardar
+                      </Button>
+                      <Button variant="outlined" onClick={cancelarEdicion}>
+                        Cancelar
+                      </Button>
+                    </Box>
+                  </>
+                ) : (
+                  <>
+                    <ListItemText
+                      primary={m.nombre}
+                      secondary={`Stock: ${m.cantidad} | Cantidad a comprar: ${m.cantidadAComprar} | Compra: ${m.fechaCompra}`}
+                    />
+                    {m.cantidad < UMBRAL_STOCK_BAJO && (
+                      <Box sx={{ color: 'red', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                        ⚠️ Stock bajo
+                      </Box>
+                    )}
+                    {m.cantidad < UMBRAL_STOCK_BAJO && (
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={m.encargado || false}
+                            onChange={(e) => manejarEncargado(index, e.target.checked)}
+                          />
+                        }
+                        label="Encargado"
+                        sx={{ marginTop: '0.5rem' }}
+                      />
+                    )}
+                    {m.recordatorio && (
+                      <Typography variant="body2" sx={{ marginTop: '0.3rem' }}>
+                        🕒 Recordatorio: {m.recordatorio.hora} ({m.recordatorio.frecuencia})
+                      </Typography>
+                    )}
+                    <Button
+                      variant="text"
+                      size="small"
+                      onClick={() => iniciarEdicion(index)}
+                      sx={{ marginTop: '0.5rem' }}
+                    >
+                      ✏️ Editar
+                    </Button>
+                  </>
+                )}
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
+      )}
     </Container>
   );
 }

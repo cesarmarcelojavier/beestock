@@ -1,5 +1,8 @@
 // src/pages/Login.js
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { auth } from '../firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import {
   Container,
   Typography,
@@ -7,38 +10,49 @@ import {
   Button,
   Alert,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import usuariosAutorizados from '../data/usuarios';
 
 export default function Login() {
-  const [usuario, setUsuario] = useState('');
+  const [email, setEmail] = useState('');
   const [contraseña, setContraseña] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const manejarLogin = () => {
-    const encontrado = usuariosAutorizados.find(
-      (u) => u.usuario === usuario && u.contraseña === contraseña
-    );
+  const administradores = ['Marcelo@beestock.ar', 'Natalia@beestock.ar'];
 
-    if (encontrado) {
-      localStorage.setItem('usuarioActivo', JSON.stringify(encontrado));
+  const manejarLogin = async () => {
+    try {
+      const resultado = await signInWithEmailAndPassword(auth, email, contraseña);
+      const emailAutenticado = resultado.user.email.toLowerCase();
+
+      if (!administradores.includes(emailAutenticado)) {
+        setError('Este usuario no está autorizado como administrador');
+        return;
+      }
+
+      const usuario = {
+        uid: resultado.user.uid,
+        email: emailAutenticado,
+        nombre: emailAutenticado.includes('Marcelo') ? 'Marcelo' : 'Natalia',
+        rol: 'administrador',
+      };
+
+      localStorage.setItem('usuarioActivo', JSON.stringify(usuario));
       navigate('/inicio');
-    } else {
-      setError('Usuario o contraseña incorrectos');
+    } catch (err) {
+      setError('Credenciales incorrectas o usuario no autorizado');
     }
   };
 
   return (
-    <Container maxWidth="sm" sx={{ marginTop: '4rem' }}>
+    <Container maxWidth="sm" sx={{ marginTop: '2rem' }}>
       <Typography variant="h4" gutterBottom>
         Iniciar sesión
       </Typography>
 
       <TextField
-        label="Usuario"
-        value={usuario}
-        onChange={(e) => setUsuario(e.target.value)}
+        label="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         fullWidth
         sx={{ marginBottom: '1rem' }}
       />
@@ -52,8 +66,8 @@ export default function Login() {
         sx={{ marginBottom: '1rem' }}
       />
 
-      <Button variant="contained" color="primary" onClick={manejarLogin}>
-        Entrar
+      <Button variant="contained" onClick={manejarLogin}>
+        Acceder
       </Button>
 
       {error && (
