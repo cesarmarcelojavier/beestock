@@ -7,14 +7,17 @@ import {
   Grid,
   Card,
   CardContent,
+  CircularProgress,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 
 export default function Inicio() {
   const [stockTotal, setStockTotal] = useState(0);
   const [recordatorios, setRecordatorios] = useState([]);
+  const [cargandoStock, setCargandoStock] = useState(true);
+  const [cargandoRecordatorios, setCargandoRecordatorios] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,12 +25,14 @@ export default function Inicio() {
       const datos = snapshot.docs.map((doc) => doc.data());
       const total = datos.reduce((acc, med) => acc + (med.cantidad || 0), 0);
       setStockTotal(total);
+      setCargandoStock(false);
     });
 
     const unsubRecordatorios = onSnapshot(collection(db, 'recordatorios'), (snapshot) => {
       const datos = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       const activos = datos.filter((r) => r.activo);
       setRecordatorios(activos);
+      setCargandoRecordatorios(false);
     });
 
     return () => {
@@ -35,6 +40,14 @@ export default function Inicio() {
       unsubRecordatorios();
     };
   }, []);
+
+  const eliminarRecordatorio = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'recordatorios', id));
+    } catch (error) {
+      console.error('Error al eliminar recordatorio:', error);
+    }
+  };
 
   return (
     <Box sx={{ marginTop: '2rem' }}>
@@ -51,7 +64,11 @@ export default function Inicio() {
           <Card sx={{ backgroundColor: '#f1f8e9' }}>
             <CardContent>
               <Typography variant="h6">Stock total</Typography>
-              <Typography variant="h4">{stockTotal}</Typography>
+              {cargandoStock ? (
+                <CircularProgress size={24} />
+              ) : (
+                <Typography variant="h4">{stockTotal}</Typography>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -83,7 +100,11 @@ export default function Inicio() {
         </Grid>
       </Grid>
 
-      {recordatorios.length > 0 && (
+      {cargandoRecordatorios ? (
+        <Box sx={{ mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : recordatorios.length > 0 ? (
         <Box sx={{ mt: 4 }}>
           <Typography variant="h6" gutterBottom>
             Recordatorios activos ⏰
@@ -99,20 +120,36 @@ export default function Inicio() {
                         ? `Tomar ${rec.medicamento}`
                         : `Comprar ${rec.medicamento}`}
                     </Typography>
+
                     {rec.tipo === 'toma' && (
                       <>
                         <Typography>Horario: {rec.horario}</Typography>
                         <Typography>Días: {rec.dias}</Typography>
                       </>
                     )}
+
                     {rec.tipo === 'compra' && (
                       <Typography>Umbral: {rec.umbral}</Typography>
                     )}
+
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      sx={{ mt: 2 }}
+                      onClick={() => eliminarRecordatorio(rec.id)}
+                    >
+                      Eliminar
+                    </Button>
                   </CardContent>
                 </Card>
               </Grid>
             ))}
           </Grid>
+        </Box>
+      ) : (
+        <Box sx={{ mt: 4 }}>
+          <Typography>No hay recordatorios activos.</Typography>
         </Box>
       )}
     </Box>

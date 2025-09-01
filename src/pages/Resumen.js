@@ -9,12 +9,14 @@ import {
   TextField,
   Button,
   CircularProgress,
+  Stack,
 } from '@mui/material';
 import { db } from '../firebase';
 import {
   collection,
   onSnapshot,
   updateDoc,
+  deleteDoc,
   doc,
 } from 'firebase/firestore';
 
@@ -50,9 +52,16 @@ export default function Resumen() {
     try {
       const ref = doc(db, 'medicamentos', id);
       await updateDoc(ref, { cantidad });
-      console.log('Cantidad actualizada');
     } catch (error) {
       console.error('Error al actualizar:', error);
+    }
+  };
+
+  const eliminarMedicamento = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'medicamentos', id));
+    } catch (error) {
+      console.error('Error al eliminar:', error);
     }
   };
 
@@ -83,14 +92,22 @@ export default function Resumen() {
                     sx={{ mt: 1 }}
                   />
 
-                  <Button
-                    variant="contained"
-                    color="success"
-                    sx={{ mt: 2 }}
-                    onClick={() => guardarCantidad(med.id)}
-                  >
-                    Guardar
-                  </Button>
+                  <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+                    <Button
+                      variant="contained"
+                      color="success"
+                      onClick={() => guardarCantidad(med.id)}
+                    >
+                      Guardar
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={() => eliminarMedicamento(med.id)}
+                    >
+                      Eliminar
+                    </Button>
+                  </Stack>
                 </CardContent>
               </Card>
             </Grid>
