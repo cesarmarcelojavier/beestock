@@ -17,7 +17,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const administradores = ['Marcelo@beestock.ar', 'Natalia@beestock.ar'];
+  const administradores = ['marcelo@beestock.ar', 'natalia@beestock.ar'];
 
   const manejarLogin = async () => {
     try {
@@ -32,7 +32,7 @@ export default function Login() {
       const usuario = {
         uid: resultado.user.uid,
         email: emailAutenticado,
-        nombre: emailAutenticado.includes('Marcelo') ? 'Marcelo' : 'Natalia',
+        nombre: emailAutenticado.includes('marcelo') ? 'Marcelo' : 'Natalia',
         rol: 'administrador',
       };
 
