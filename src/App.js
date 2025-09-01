@@ -11,13 +11,20 @@ function App() {
   const [usuarioActivo, setUsuarioActivo] = useState(null);
   const navigate = useNavigate();
 
+  // Cargar usuario desde localStorage al iniciar
   useEffect(() => {
     const guardado = JSON.parse(localStorage.getItem('usuarioActivo'));
     if (guardado) {
       setUsuarioActivo(guardado);
-      navigate('/inicio');
     }
   }, []);
+
+  // Redirigir automáticamente al inicio si hay usuario activo
+  useEffect(() => {
+    if (usuarioActivo) {
+      navigate('/inicio');
+    }
+  }, [usuarioActivo, navigate]); // ✅ Incluye navigate para evitar warning
 
   return (
     <>

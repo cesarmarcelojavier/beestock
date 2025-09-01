@@ -37,7 +37,9 @@ export default function Login() {
       };
 
       localStorage.setItem('usuarioActivo', JSON.stringify(usuario));
-      navigate('/inicio');
+setTimeout(() => {
+  navigate('/inicio');
+}, 100);
     } catch (err) {
       setError('Credenciales incorrectas o usuario no autorizado');
     }
